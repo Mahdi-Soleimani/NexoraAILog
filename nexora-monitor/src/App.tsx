@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Activity, 
   AlertCircle, 
   CheckCircle2, 
-  Clock, 
   Terminal, 
   Search, 
   ChevronDown, 
   ChevronUp, 
   Cpu, 
-  Database,
   Settings,
   RefreshCw,
   Play,
@@ -29,13 +27,12 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Key // Added missing import
+  Key
 } from 'lucide-react';
 
-// --- CONFIGURATION ZONE (تنظیمات زیرساخت) ---
-// لینک‌های وب‌هوک n8n خود را اینجا قرار دهید.
-const DEFAULT_READ_WEBHOOK = "YOUR_N8N_READ_WEBHOOK_URL_HERE";  // لینک GET
-const DEFAULT_WRITE_WEBHOOK = "YOUR_N8N_WRITE_WEBHOOK_URL_HERE"; // لینک POST
+// --- CONFIGURATION ZONE ---
+const DEFAULT_READ_WEBHOOK = "YOUR_N8N_READ_WEBHOOK_URL_HERE";  
+const DEFAULT_WRITE_WEBHOOK = "YOUR_N8N_WRITE_WEBHOOK_URL_HERE"; 
 
 // --- SECURITY NOTE ---
 const apiKey = ""; 
@@ -146,7 +143,7 @@ const ToolPieChart = ({ data }: { data: LogEntry[] }) => {
     return (
         <div className="flex items-center gap-4">
             <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] border border-white/10 shrink-0" style={{
-                background: `conic-gradient(${Object.entries(tools).map(([tool, count], i) => {
+                background: `conic-gradient(${Object.entries(tools).map(([_tool, count], i) => {
                     const percent = (count / total) * 100;
                     const start = cumulativePercent;
                     cumulativePercent += percent;
@@ -263,8 +260,6 @@ export default function App() {
       authToken: '' 
   });
   
-  const autoRefreshRef = useRef(autoRefresh);
-
   // Init
   useEffect(() => {
     const savedConfig = localStorage.getItem('n8n_dashboard_config');
@@ -294,13 +289,13 @@ export default function App() {
           if (now - logTime < 10000 && latestLog.status === 'error' && latestLog.user?.role === 'CEO') {
               const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); 
               audio.volume = 0.5;
-              audio.play().catch(e => console.warn("Audio blocked"));
+              audio.play().catch(() => console.warn("Audio blocked"));
           }
       }
   }, [logs, isMuted]);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval>;
     if (autoRefresh) {
       intervalId = setInterval(() => { if (config.readUrl && !loading) fetchLogs(config, true); }, 5000);
     }
@@ -496,7 +491,7 @@ export default function App() {
                  <Cpu className="text-white" size={18} />
              </div>
              <div>
-                <h1 className="text-lg font-bold text-white tracking-widest font-[Rajdhani]">NEXORA <span className="font-light text-cyan-400">v2.4</span></h1>
+                <h1 className="text-lg font-bold text-white tracking-widest font-[Rajdhani]">NEXORA <span className="font-light text-cyan-400">v2.5</span></h1>
              </div>
           </div>
           
@@ -541,7 +536,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-24 relative z-10">
 
-        {/* --- SECURE CONFIG MODAL (UPDATED) --- */}
+        {/* --- SECURE CONFIG MODAL --- */}
         {showConfig && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
                 <div className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-2xl shadow-2xl p-6 relative overflow-hidden">
@@ -845,7 +840,7 @@ export default function App() {
                 <GlassCard className="p-6">
                     <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><User size={16}/> کاربران فعال</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {Array.from(new Set(logs.map(l => l.user?.id))).slice(0, 9).map((uid, i) => {
+                        {Array.from(new Set(logs.map(l => l.user?.id))).slice(0, 9).map((uid) => {
                             const userLogs = logs.filter(l => l.user?.id === uid);
                             const role = userLogs[0]?.user?.role;
                             const isCEO = role === 'CEO';
