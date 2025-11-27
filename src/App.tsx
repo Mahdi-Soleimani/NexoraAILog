@@ -6,7 +6,7 @@ import {
 import { 
   Activity, Database, Search, RefreshCw, 
   CheckCircle2, XCircle, User, 
-  Cpu, Settings, LayoutDashboard, List, 
+  Settings, LayoutDashboard, List, 
   Sparkles, Loader2, FileText, BrainCircuit, Zap, PieChart as PieIcon,
   Download, Moon, Sun, WifiOff, Wifi, PlayCircle, PauseCircle, Timer, History,
   Users, DollarSign, BarChart3
@@ -289,6 +289,7 @@ export default function NexoraProfessionalPanel() {
 
   const clearSearch = () => { setSearchQuery(''); setIsSmartSearch(false); setFilteredLogs(logs); };
 
+  // Stats Logic
   const stats = useMemo(() => {
     const total = logs.length;
     const success = logs.filter(l => l.status === 'success').length;
@@ -476,11 +477,11 @@ export default function NexoraProfessionalPanel() {
           <KpiCard title="کل درخواست‌ها" value={stats.total} icon={<Activity className="text-blue-500"/>} trend="+5%" theme={theme} color="blue" />
           <KpiCard title="نرخ موفقیت" value={`%${stats.successRate}`} icon={<CheckCircle2 className="text-emerald-500"/>} theme={theme} color="emerald" />
           <KpiCard title="میانگین زمان پاسخ" value={`${stats.avgTime} ms`} icon={<Zap className="text-amber-500"/>} theme={theme} color="amber" />
-          {/* Cost KPI */}
+          {/* Cost KPI - Updated */}
           <KpiCard title="هزینه تقریبی (تومان)" value={stats.estimatedCost.toLocaleString()} icon={<DollarSign className="text-purple-500"/>} theme={theme} color="purple" />
         </div>
 
-        {/* --- Tabs --- */}
+        {/* --- Tabs (Updated with new sections) --- */}
         <div className={`border-b ${isDarkMode ? 'border-slate-800' : 'border-gray-200'}`}>
           <nav className="-mb-px flex space-x-8 space-x-reverse overflow-x-auto" aria-label="Tabs">
             <TabItem id="dashboard" label="داشبورد مدیریتی" icon={<LayoutDashboard className="w-4 h-4"/>} activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} />
@@ -554,7 +555,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Performance Tab --- */}
+        {/* --- Performance Tab (New Feature: Deep Dive) --- */}
         {activeTab === 'performance' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
              {/* Latency Heatmap */}
@@ -597,7 +598,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Users Tab --- */}
+        {/* --- Users Tab (New Feature: Top Users & Cost) --- */}
         {activeTab === 'users' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
              {/* Top Users */}
@@ -644,7 +645,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Logs Table Content --- */}
+        {/* --- Logs Table Content (With Export) --- */}
         {activeTab === 'logs' && (
           <div className={`rounded-2xl shadow-sm border overflow-hidden animate-in fade-in duration-500 transition-all ${theme.card} ${theme.glass}`}>
              <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 ${isDarkMode ? 'border-slate-700/50' : 'border-gray-200'}`}>
