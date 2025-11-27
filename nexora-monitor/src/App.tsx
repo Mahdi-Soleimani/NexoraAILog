@@ -32,7 +32,7 @@ import {
 
 // --- CONFIGURATION ZONE ---
 const DEFAULT_READ_WEBHOOK = "https://50356-4vb9a.s3.irann8n.com/webhook/sfwefewir2348r23rh238r23r93hr92";  
-const DEFAULT_WRITE_WEBHOOK = "YOUR_N8N_WRITE_WEBHOOK_URL_HERE"; 
+const DEFAULT_WRITE_WEBHOOK = "https://50356-4vb9a.s3.irann8n.com/webhook/sfwefewir2348r23rh238r23r93hr92"; 
 
 // --- SECURITY NOTE ---
 const apiKey = ""; 
