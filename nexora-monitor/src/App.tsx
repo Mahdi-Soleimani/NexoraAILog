@@ -171,40 +171,67 @@ export default function App() {
   const [config, setConfig] = useState<ApiConfig>({ readUrl: DEFAULT_READ_WEBHOOK, writeUrl: DEFAULT_WRITE_WEBHOOK, authToken: '' });
   
   // FIX: Initialization Logic
-  useEffect(() => {
-    // 1. Get saved config or use defaults
-    const savedConfigStr = localStorage.getItem('n8n_dashboard_config');
-    let initialConfig: ApiConfig = { 
-        readUrl: DEFAULT_READ_WEBHOOK, 
-        writeUrl: DEFAULT_WRITE_WEBHOOK, 
-        authToken: '' 
-    };
+ // خط 174 تا 207 رو با این جایگزین کنید:
 
-    if (savedConfigStr) {
-      try {
-        const parsed = JSON.parse(savedConfigStr);
-        // Merge saved config with defaults (in case specific fields are missing)
-        initialConfig = {
-            readUrl: parsed.readUrl || DEFAULT_READ_WEBHOOK,
-            writeUrl: parsed.writeUrl || DEFAULT_WRITE_WEBHOOK,
-            authToken: parsed.authToken || ''
-        };
-      } catch (e) {
-        console.error("Error parsing saved config", e);
-      }
+// FIX: Initialization Logic
+useEffect(() => {
+  // 1. Get saved config or use defaults
+  const savedConfigStr = localStorage.getItem('n8n_dashboard_config');
+  let initialConfig: ApiConfig = { 
+      readUrl: DEFAULT_READ_WEBHOOK, 
+      writeUrl: DEFAULT_WRITE_WEBHOOK, 
+      authToken: '' 
+  };
+
+  if (savedConfigStr) {
+    try {
+      const parsed = JSON.parse(savedConfigStr);
+      // Merge saved config with defaults (in case specific fields are missing)
+      initialConfig = {
+          readUrl: parsed.readUrl || DEFAULT_READ_WEBHOOK,
+          writeUrl: parsed.writeUrl || DEFAULT_WRITE_WEBHOOK,
+          authToken: parsed.authToken || ''
+      };
+    } catch (e) {
+      console.error("Error parsing saved config", e);
     }
+  }
 
-    // 2. Set state
-    setConfig(initialConfig);
+  // 2. Set state
+  setConfig(initialConfig);
 
-    // 3. ALWAYS attempt to fetch logs immediately using the initial config
-    // We do NOT block if authToken is missing. n8n might be open, or we'll get a 401 error which we handle.
-    console.log("Initializing Dashboard with:", initialConfig.readUrl);
-    setTimeout(() => {
-        fetchLogs(initialConfig, false);
-    }, 500);
+  // 3.  ALWAYS attempt to fetch logs immediately using the initial config
+  console.log("Initializing Dashboard with:", initialConfig. readUrl);
+  setTimeout(() => {
+      fetch(initialConfig.readUrl, { 
+        headers: { 'Content-Type': 'application/json' } 
+      })
+      .then(res => res.json())
+      .then(data => {
+        const logsArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : (data. logs ?  data.logs : []));
+        const formattedLogs = logsArray.map((log: any, index: number) => ({
+          id: String(log.id) || `log-${index}-${Date.now()}`,
+          workflowName: log.workflowName || 'Unknown Workflow',
+          status: log.status || 'warning',
+          message: log.message || '',
+          details: log.details || {},
+          timestamp: log.timestamp || new Date(). toISOString(),
+          executionTime: log.metrics?.executionTime || log.executionTime || 0,
+          user: log.user || { id: 'anon', role: 'Guest', platform: 'web' },
+          metrics: {
+            tokensUsed: log.metrics?.tokensUsed || 0,
+            toolCalled: log.metrics?.toolCalled || 'General',
+            executionTime: log.metrics?.executionTime || log.executionTime
+          },
+          tags: log.tags || []
+        }));
+        formattedLogs.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setLogs(formattedLogs);
+      })
+      .catch(err => console.error("Initial fetch error:", err));
+  }, 500);
 
-  }, []);
+}, []); // حالا مشکلی نداره چون مستقیماً fetch می‌زنیم
 
   useEffect(() => {
       if (!isMuted && logs.length > 0) {
@@ -329,7 +356,7 @@ export default function App() {
       const csvContent = "data:text/csv;charset=utf-8," 
           + headers.join(",") + "\n" 
           + logs.map(e => `${e.id},${e.workflowName},${e.status},"${e.message.replace(/"/g, '""')}",${e.timestamp},${e.user?.id},${e.user?.role},${e.metrics?.tokensUsed},${e.metrics?.toolCalled}`).join("\n");
-      const encodedUri =WZuriComponent(csvContent); // Typo fixed in standard JS: encodeURI
+      const encodedUri =encodeURIComponent(csvContent); // Typo fixed in standard JS: encodeURI
       const link = document.createElement("a");
       link.setAttribute("href", encodeURI(csvContent));
       link.setAttribute("download", `nexora_logs_${new Date().toISOString()}.csv`);
