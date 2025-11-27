@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
-  AreaChart, Area, Cell, PieChart, Pie
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
+  Area, Cell, PieChart, Pie, ComposedChart, Line
 } from 'recharts';
 import { 
   Activity, Database, Search, RefreshCw, 
   CheckCircle2, XCircle, User, 
   Settings, LayoutDashboard, List, 
   Sparkles, Loader2, FileText, BrainCircuit, Zap, PieChart as PieIcon,
-  Download, Moon, Sun, WifiOff, Wifi, PlayCircle, PauseCircle, Timer, History,
+  Download, Moon, Sun, WifiOff, Wifi, PauseCircle, Timer, History,
   Users, DollarSign, BarChart3
 } from 'lucide-react';
 
@@ -439,7 +439,7 @@ export default function NexoraProfessionalPanel() {
               title={isAutoRefresh ? "توقف بروزرسانی خودکار" : "شروع بروزرسانی خودکار (هر ۵ ثانیه)"}
             >
               {isAutoRefresh ? <PauseCircle className="w-4 h-4"/> : <Timer className="w-4 h-4"/>}
-              <span className="hidden sm:inline">{isAutoRefresh ? "خودکار" : "خامو‌ش"}</span>
+              <span className="hidden sm:inline">{isAutoRefresh ? "خودکار: روشن" : "خودکار: خاموش"}</span>
             </button>
 
             <div className={`h-6 w-px mx-1 ${isDarkMode ? 'bg-slate-700' : 'bg-gray-300'}`}></div>
@@ -500,7 +500,7 @@ export default function NexoraProfessionalPanel() {
               </h3>
               <div className="h-72 w-full" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={timelineData}>
+                  <ComposedChart data={timelineData}>
                     <defs>
                       <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -514,7 +514,7 @@ export default function NexoraProfessionalPanel() {
                     <Legend />
                     <Area type="monotone" dataKey="executionTime" name="زمان پاسخ (ms)" stroke="#3b82f6" fillOpacity={1} fill="url(#colorTime)" strokeWidth={2} />
                     <Line type="monotone" dataKey="tokens" name="توکن مصرفی" stroke="#8b5cf6" strokeWidth={2} dot={false} />
-                  </AreaChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -710,6 +710,7 @@ export default function NexoraProfessionalPanel() {
                  <label className={`block text-sm font-medium mb-2 ${theme.text}`}>آدرس وب‌هوک (Webhook URL)</label>
                  <input type="text" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className={`block w-full border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm dir-ltr ${theme.input}`} />
               </div>
+              
               {urlHistory.length > 0 && (
                 <div className="mt-2">
                   <span className={`text-xs ${theme.subText} block mb-2 flex items-center gap-1`}><History className="w-3 h-3"/> آخرین آدرس‌های موفق:</span>
@@ -722,6 +723,7 @@ export default function NexoraProfessionalPanel() {
                   </div>
                 </div>
               )}
+
               <button onClick={handleSaveConfig} className="w-full flex justify-center py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all">ذخیره و تست ارتباط</button>
            </div>
         </GlassModal>
