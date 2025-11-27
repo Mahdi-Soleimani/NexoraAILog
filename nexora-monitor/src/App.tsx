@@ -210,7 +210,7 @@ export default function App() {
         console.log("📥 Response status:", response.status);
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          throw new Error(`HTTP ${response.status} ${response.statusText} from ${initialConfig.readUrl}`);
         }
         
         const data = await response.json();
