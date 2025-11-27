@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURATION ZONE ---
-const DEFAULT_READ_WEBHOOK = "YOUR_N8N_READ_WEBHOOK_URL_HERE";  
+const DEFAULT_READ_WEBHOOK = "https://50356-4vb9a.s3.irann8n.com/webhook/279fc302-b12f-47b3-9f0f-fbfae6fbf7d8";  
 const DEFAULT_WRITE_WEBHOOK = "YOUR_N8N_WRITE_WEBHOOK_URL_HERE"; 
 
 // --- SECURITY NOTE ---
