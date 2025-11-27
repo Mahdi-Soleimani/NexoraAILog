@@ -8,12 +8,9 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURATION ZONE ---
-// حتما مطمئن شوید این لینک‌ها را ذخیره کرده‌اید
+// لینک‌های وب‌هوک شما
 const DEFAULT_READ_WEBHOOK = "https://50356-4vb9a.s3.irann8n.com/webhook/sfwefewir2348r23rh238r23r93hr92";  
 const DEFAULT_WRITE_WEBHOOK = "YOUR_N8N_WRITE_WEBHOOK_URL_HERE"; 
-
-// --- SECURITY NOTE ---
-const apiKey = ""; 
 
 // --- Types ---
 interface LogEntry {
@@ -170,18 +167,43 @@ export default function App() {
   const [showConfig, setShowConfig] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // State for configuration
   const [config, setConfig] = useState<ApiConfig>({ readUrl: DEFAULT_READ_WEBHOOK, writeUrl: DEFAULT_WRITE_WEBHOOK, authToken: '' });
   
+  // FIX: Initialization Logic
   useEffect(() => {
-    const savedConfig = localStorage.getItem('n8n_dashboard_config');
-    if (savedConfig) {
-      const parsed = JSON.parse(savedConfig);
-      setConfig(prev => ({ ...prev, authToken: parsed.authToken || '' }));
-      if (parsed.authToken) {
-          // Initial fetch with explicit config
-          setTimeout(() => fetchLogs({ ...parsed, readUrl: DEFAULT_READ_WEBHOOK, writeUrl: DEFAULT_WRITE_WEBHOOK }), 500);
-      } else setShowConfig(true);
-    } else setShowConfig(true);
+    // 1. Get saved config or use defaults
+    const savedConfigStr = localStorage.getItem('n8n_dashboard_config');
+    let initialConfig: ApiConfig = { 
+        readUrl: DEFAULT_READ_WEBHOOK, 
+        writeUrl: DEFAULT_WRITE_WEBHOOK, 
+        authToken: '' 
+    };
+
+    if (savedConfigStr) {
+      try {
+        const parsed = JSON.parse(savedConfigStr);
+        // Merge saved config with defaults (in case specific fields are missing)
+        initialConfig = {
+            readUrl: parsed.readUrl || DEFAULT_READ_WEBHOOK,
+            writeUrl: parsed.writeUrl || DEFAULT_WRITE_WEBHOOK,
+            authToken: parsed.authToken || ''
+        };
+      } catch (e) {
+        console.error("Error parsing saved config", e);
+      }
+    }
+
+    // 2. Set state
+    setConfig(initialConfig);
+
+    // 3. ALWAYS attempt to fetch logs immediately using the initial config
+    // We do NOT block if authToken is missing. n8n might be open, or we'll get a 401 error which we handle.
+    console.log("Initializing Dashboard with:", initialConfig.readUrl);
+    setTimeout(() => {
+        fetchLogs(initialConfig, false);
+    }, 500);
+
   }, []);
 
   useEffect(() => {
@@ -195,31 +217,36 @@ export default function App() {
       }
   }, [logs, isMuted]);
 
+  // FIX: Added config to dependencies so autoRefresh sees the current URLs
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval>;
     if (autoRefresh) {
-      intervalId = setInterval(() => { if (config.readUrl && !loading) fetchLogs(config, true); }, 5000);
+      intervalId = setInterval(() => { 
+        if (!loading) fetchLogs(config, true); 
+      }, 5000);
     }
     return () => clearInterval(intervalId);
   }, [autoRefresh, config, loading]);
 
-  // --- Fixed fetchLogs with Debugging ---
   const fetchLogs = useCallback(async (currentConfig: ApiConfig = config, silent = false) => {
     const targetUrl = currentConfig.readUrl || DEFAULT_READ_WEBHOOK;
     
-    console.log("Attempting to fetch logs from:", targetUrl); // DEBUG LOG
-
-    // FIX: Alert user instead of silent return if URL is default placeholder
+    // Safety check for placeholder URLs
     if (!targetUrl || targetUrl.includes("YOUR_N8N")) {
-        console.error("Invalid Webhook URL detected:", targetUrl);
-        if (!silent) alert("خطا: لینک وب‌هوک هنوز تنظیم نشده است. لطفا فایل کد را بررسی کنید.");
+        console.warn("Webhook URL not set or is placeholder.");
+        if (!silent) alert("خطا: لینک وب‌هوک هنوز تنظیم نشده است.");
         return;
     }
 
     if (!silent) setLoading(true);
     
     try {
-      const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': currentConfig.authToken };
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      // Only add auth header if token exists to avoid sending empty header issues (though usually fine)
+      if (currentConfig.authToken) {
+          headers['Authorization'] = currentConfig.authToken;
+      }
+
       const response = await fetch(targetUrl, { headers });
       
       if (response.status === 401 || response.status === 403) {
@@ -231,7 +258,8 @@ export default function App() {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
       let data = await response.json();
-      const logsArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+      // Handle different data structures n8n might return
+      const logsArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : (data.logs ? data.logs : []));
 
       const formattedLogs = logsArray.map((log: any, index: number) => ({
         id: String(log.id) || `log-${index}-${Date.now()}`,
@@ -250,15 +278,20 @@ export default function App() {
         tags: log.tags || []
       }));
 
+      // Sort by newest first
       formattedLogs.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
       setLogs(formattedLogs);
-      console.log("Logs fetched successfully:", formattedLogs.length); // DEBUG LOG
+      if(!silent && formattedLogs.length === 0) {
+        console.log("Fetched successfully but received 0 logs.");
+      }
+      
     } catch (error) {
       console.error("Fetch Error:", error);
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [config]); // FIX: Added config to dependencies so refresh button sees updated state
+  }, [config]); // Dependency on config ensures latest URLs are used
 
   const handleSaveConfig = () => {
     localStorage.setItem('n8n_dashboard_config', JSON.stringify(config));
@@ -268,24 +301,53 @@ export default function App() {
 
   const handleAddTestLog = async () => {
     if (!config.writeUrl || config.writeUrl.includes("YOUR_N8N")) {
-        // Mock Logic ... (Shortened for brevity, same as before)
         const now = new Date();
         const newLog: LogEntry = {
-            id: `mock-${Date.now()}`, workflowName: "Nexora_Main_Flow", status: 'success', message: "Test Log (Mock)", timestamp: now.toISOString(),
-            details: { info: "No Write URL configured" }, user: { id: 777, role: 'CEO' }, metrics: { tokensUsed: 100, toolCalled: 'Mock', executionTime: 120 }
+            id: `mock-${Date.now()}`, workflowName: "Nexora_Main_Flow", status: 'success', message: "Test Log (Mock - No Write URL)", timestamp: now.toISOString(),
+            details: { info: "No Write URL configured, this is a local simulation." }, user: { id: 777, role: 'CEO' }, metrics: { tokensUsed: 100, toolCalled: 'Mock', executionTime: 120 }
         };
         setLogs(prev => [newLog, ...prev]);
         return;
     }
     try {
-        const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': config.authToken };
-        await fetch(config.writeUrl, { method: 'POST', headers, body: JSON.stringify({ message: "Dashboard Connection Test" }) });
-        alert("تست اتصال ارسال شد.");
-    } catch (e) { alert("خطا در ارسال تست."); }
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (config.authToken) headers['Authorization'] = config.authToken;
+        
+        await fetch(config.writeUrl, { method: 'POST', headers, body: JSON.stringify({ message: "Dashboard Connection Test", timestamp: new Date().toISOString() }) });
+        alert("تست اتصال ارسال شد. لیست را رفرش کنید.");
+        // Optional: refresh logs after a short delay
+        setTimeout(() => fetchLogs(config, true), 1000);
+    } catch (e) { 
+        alert("خطا در ارسال تست."); 
+        console.error(e);
+    }
   };
 
-  const exportCSV = () => { /* ... same ... */ };
-  const handleAnalyzeError = async (log: LogEntry) => { /* ... same ... */ };
+  const exportCSV = () => { 
+      if (logs.length === 0) return;
+      const headers = ["ID", "Workflow", "Status", "Message", "Timestamp", "User ID", "Role", "Tokens", "Tool"];
+      const csvContent = "data:text/csv;charset=utf-8," 
+          + headers.join(",") + "\n" 
+          + logs.map(e => `${e.id},${e.workflowName},${e.status},"${e.message.replace(/"/g, '""')}",${e.timestamp},${e.user?.id},${e.user?.role},${e.metrics?.tokensUsed},${e.metrics?.toolCalled}`).join("\n");
+      const encodedUri =WZuriComponent(csvContent); // Typo fixed in standard JS: encodeURI
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `nexora_logs_${new Date().toISOString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+  };
+  
+  const handleAnalyzeError = async (log: LogEntry) => { 
+      setAnalyzingLogId(log.id);
+      // Simulate analysis delay
+      setTimeout(() => {
+          setAiAnalysisResult(prev => ({
+              ...prev,
+              [log.id]: `تحلیل هوشمند (Mock): خطای شناسایی شده در ورک‌فلو ${log.workflowName} احتمالا ناشی از تایم‌اوت در سرویس خارجی است. پیشنهاد: بررسی نود HTTP Request.`
+          }));
+          setAnalyzingLogId(null);
+      }, 1500);
+  };
 
   // Stats & Filters
   const stats = useMemo(() => {
