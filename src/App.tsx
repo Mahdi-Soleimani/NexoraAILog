@@ -112,7 +112,7 @@ const exportToCSV = (data: LogEntry[]) => {
 
 // --- Gemini API Helper ---
 const callGeminiAPI = async (prompt: string, jsonResponse: boolean = false): Promise<any> => {
-  const apiKey = AIzaSyBaICt1MD8be2m_wRsTslkVf1bczmQvWpE"; 
+  const apiKey = "AIzaSyBaICt1MD8be2m_wRsTslkVf1bczmQvWpE"; 
   try {
     const payload: any = { contents: [{ parts: [{ text: prompt }] }] };
     if (jsonResponse) payload.generationConfig = { responseMimeType: "application/json" };
