@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
+  Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
   AreaChart, Area, Cell, PieChart, Pie
 } from 'recharts';
 import { 
-  Activity, Server, Database, Search, RefreshCw, AlertCircle, 
-  CheckCircle2, XCircle, Terminal, User, 
-  Cpu, MessageSquare, Settings, LayoutDashboard, List, 
+  Activity, Database, Search, RefreshCw, 
+  CheckCircle2, XCircle, User, 
+  Cpu, Settings, LayoutDashboard, List, 
   Sparkles, Loader2, FileText, BrainCircuit, Zap, PieChart as PieIcon,
-  ChevronLeft, Filter, Download, Moon, Sun, WifiOff, Wifi, PlayCircle, PauseCircle, Timer, History,
-  TrendingUp, Users, DollarSign, BarChart3
+  Download, Moon, Sun, WifiOff, Wifi, PlayCircle, PauseCircle, Timer, History,
+  Users, DollarSign, BarChart3
 } from 'lucide-react';
 
 // --- 1. Data Models ---
@@ -99,7 +99,7 @@ const exportToCSV = (data: LogEntry[]) => {
     `"${log.id}","${log.status}","${new Date(log.timestamp).toLocaleString('fa-IR')}","${log.user.role}","${log.user.platform}","${log.details.question.replace(/"/g, '""')}","${log.details.answer.replace(/"/g, '""')}","${log.metrics.tokensUsed}","${log.metrics.executionTime}"`
   );
   
-  const csvContent = "\uFEFF" + [headers, ...rows].join("\n"); // Add BOM for Excel UTF-8 support
+  const csvContent = "\uFEFF" + [headers, ...rows].join("\n"); 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -145,7 +145,6 @@ export default function NexoraProfessionalPanel() {
   const [urlHistory, setUrlHistory] = useState<string[]>([]);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   
-  // Tabs: Added 'performance' and 'users'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'performance' | 'users'>('dashboard');
   
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
@@ -154,7 +153,6 @@ export default function NexoraProfessionalPanel() {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle');
   const [isAutoRefresh, setIsAutoRefresh] = useState(false);
 
-  // Search & AI
   const [searchQuery, setSearchQuery] = useState('');
   const [isSmartSearch, setIsSmartSearch] = useState(false);
   const [smartSearchLoading, setSmartSearchLoading] = useState(false);
@@ -164,10 +162,8 @@ export default function NexoraProfessionalPanel() {
   const [showAiReportModal, setShowAiReportModal] = useState(false);
 
   const AUTH_TOKEN = "nexoraai2025";
-  // Token Price (Assumption: $0.00001 per token ~ 0.5 Toman) - Mock Rate
   const COST_PER_TOKEN_TOMAN = 0.5; 
 
-  // Load Initial Settings
   useEffect(() => {
     const savedUrl = localStorage.getItem('nexora_webhook_url');
     const savedTheme = localStorage.getItem('nexora_theme');
@@ -175,7 +171,7 @@ export default function NexoraProfessionalPanel() {
     
     if (savedTheme === 'dark') setIsDarkMode(true);
     if (savedHistory) {
-      try { setUrlHistory(JSON.parse(savedHistory)); } catch(e) {}
+      try { setUrlHistory(JSON.parse(savedHistory)); } catch(e) { console.log(e); }
     }
 
     if (savedUrl) {
@@ -187,9 +183,8 @@ export default function NexoraProfessionalPanel() {
     }
   }, []);
 
-  // Auto Refresh
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isAutoRefresh && webhookUrl) {
       interval = setInterval(() => {
         fetchLogs(webhookUrl, true);
@@ -198,7 +193,6 @@ export default function NexoraProfessionalPanel() {
     return () => clearInterval(interval);
   }, [isAutoRefresh, webhookUrl]);
 
-  // Filter
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredLogs(logs);
@@ -287,14 +281,14 @@ export default function NexoraProfessionalPanel() {
     try {
       const result = await callGeminiAPI(prompt, true);
       setFilteredLogs(logs.filter(l => (result.matchedIds || []).includes(l.id)));
-    } catch (e) { setIsSmartSearch(false); } 
-    finally { setSmartSearchLoading(false); }
+    } catch (e) { 
+        console.log(e);
+        setIsSmartSearch(false); 
+    } finally { setSmartSearchLoading(false); }
   };
 
   const clearSearch = () => { setSearchQuery(''); setIsSmartSearch(false); setFilteredLogs(logs); };
 
-  // --- Calculations for New Features ---
-  
   const stats = useMemo(() => {
     const total = logs.length;
     const success = logs.filter(l => l.status === 'success').length;
@@ -306,7 +300,6 @@ export default function NexoraProfessionalPanel() {
     return { total, success, errors, successRate, totalTokens, avgTime, estimatedCost };
   }, [logs]);
 
-  // 1. Top Users Logic
   const topUsersData = useMemo(() => {
     const userMap: Record<string, { role: string, count: number, tokens: number }> = {};
     logs.forEach(log => {
@@ -318,29 +311,24 @@ export default function NexoraProfessionalPanel() {
     return Object.entries(userMap)
       .map(([id, data]) => ({ id, ...data }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5); // Top 5
+      .slice(0, 5); 
   }, [logs]);
 
-  // 2. Latency Distribution Logic (UPDATED for Gemini Speeds)
   const latencyData = useMemo(() => {
     let fast = 0, medium = 0, slow = 0;
     logs.forEach(log => {
       const t = log.metrics?.executionTime || 0;
-      // Fast: 1 to 10 seconds (<= 10000ms)
-      // Medium: 10 to 30 seconds (<= 30000ms)
-      // Slow: > 30 seconds (> 30000ms)
       if (t <= 10000) fast++;
       else if (t <= 30000) medium++;
       else slow++;
     });
     return [
-      { name: 'سریع (زیر ۱۰ ثانیه)', value: fast, color: '#10b981' }, // Green
-      { name: 'متوسط (۱۰ تا ۳۰ ثانیه)', value: medium, color: '#f59e0b' }, // Amber
-      { name: 'کند (بالای ۳۰ ثانیه)', value: slow, color: '#ef4444' } // Red
+      { name: 'سریع (زیر ۱۰ ثانیه)', value: fast, color: '#10b981' }, 
+      { name: 'متوسط (۱۰ تا ۳۰ ثانیه)', value: medium, color: '#f59e0b' }, 
+      { name: 'کند (بالای ۳۰ ثانیه)', value: slow, color: '#ef4444' } 
     ];
   }, [logs]);
 
-  // 3. Tool Usage Logic
   const toolUsageData = useMemo(() => {
     const toolMap: Record<string, number> = {};
     logs.forEach(log => {
@@ -350,7 +338,6 @@ export default function NexoraProfessionalPanel() {
     return Object.entries(toolMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
   }, [logs]);
 
-  // 4. Cost Analysis Logic
   const costData = useMemo(() => {
     const costMap: Record<string, number> = {};
     logs.forEach(log => {
@@ -373,7 +360,6 @@ export default function NexoraProfessionalPanel() {
     return Object.keys(counts).map(key => ({ name: key, value: counts[key] }));
   }, [logs]);
 
-  // --- Dynamic Styles ---
   const theme = {
     bg: isDarkMode ? 'bg-slate-950' : 'bg-gray-100',
     text: isDarkMode ? 'text-slate-100' : 'text-gray-800',
@@ -385,6 +371,7 @@ export default function NexoraProfessionalPanel() {
     glass: 'backdrop-blur-xl',
     chartGrid: isDarkMode ? '#334155' : '#e5e7eb',
     chartText: isDarkMode ? '#94a3b8' : '#6b7280',
+    input: isDarkMode ? 'bg-slate-900/80 border-slate-700 text-white placeholder-slate-500' : 'bg-white/80 border-gray-300 text-gray-900 placeholder-gray-400',
   };
 
   const bgGradient = isDarkMode 
@@ -489,11 +476,11 @@ export default function NexoraProfessionalPanel() {
           <KpiCard title="کل درخواست‌ها" value={stats.total} icon={<Activity className="text-blue-500"/>} trend="+5%" theme={theme} color="blue" />
           <KpiCard title="نرخ موفقیت" value={`%${stats.successRate}`} icon={<CheckCircle2 className="text-emerald-500"/>} theme={theme} color="emerald" />
           <KpiCard title="میانگین زمان پاسخ" value={`${stats.avgTime} ms`} icon={<Zap className="text-amber-500"/>} theme={theme} color="amber" />
-          {/* Cost KPI - Updated */}
+          {/* Cost KPI */}
           <KpiCard title="هزینه تقریبی (تومان)" value={stats.estimatedCost.toLocaleString()} icon={<DollarSign className="text-purple-500"/>} theme={theme} color="purple" />
         </div>
 
-        {/* --- Tabs (Updated with new sections) --- */}
+        {/* --- Tabs --- */}
         <div className={`border-b ${isDarkMode ? 'border-slate-800' : 'border-gray-200'}`}>
           <nav className="-mb-px flex space-x-8 space-x-reverse overflow-x-auto" aria-label="Tabs">
             <TabItem id="dashboard" label="داشبورد مدیریتی" icon={<LayoutDashboard className="w-4 h-4"/>} activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} />
@@ -567,7 +554,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Performance Tab (New Feature: Deep Dive) --- */}
+        {/* --- Performance Tab --- */}
         {activeTab === 'performance' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
              {/* Latency Heatmap */}
@@ -610,7 +597,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Users Tab (New Feature: Top Users & Cost) --- */}
+        {/* --- Users Tab --- */}
         {activeTab === 'users' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-500">
              {/* Top Users */}
@@ -657,7 +644,7 @@ export default function NexoraProfessionalPanel() {
           </div>
         )}
 
-        {/* --- Logs Table Content (With Export) --- */}
+        {/* --- Logs Table Content --- */}
         {activeTab === 'logs' && (
           <div className={`rounded-2xl shadow-sm border overflow-hidden animate-in fade-in duration-500 transition-all ${theme.card} ${theme.glass}`}>
              <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 ${isDarkMode ? 'border-slate-700/50' : 'border-gray-200'}`}>
@@ -722,7 +709,6 @@ export default function NexoraProfessionalPanel() {
                  <label className={`block text-sm font-medium mb-2 ${theme.text}`}>آدرس وب‌هوک (Webhook URL)</label>
                  <input type="text" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." className={`block w-full border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm dir-ltr ${theme.input}`} />
               </div>
-              
               {urlHistory.length > 0 && (
                 <div className="mt-2">
                   <span className={`text-xs ${theme.subText} block mb-2 flex items-center gap-1`}><History className="w-3 h-3"/> آخرین آدرس‌های موفق:</span>
@@ -735,7 +721,6 @@ export default function NexoraProfessionalPanel() {
                   </div>
                 </div>
               )}
-
               <button onClick={handleSaveConfig} className="w-full flex justify-center py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all">ذخیره و تست ارتباط</button>
            </div>
         </GlassModal>
