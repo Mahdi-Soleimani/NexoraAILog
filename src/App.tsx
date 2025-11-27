@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
-  Area, Cell, PieChart, Pie, ComposedChart, Line
+  ComposedChart, Area, Line, Cell, PieChart, Pie
 } from 'recharts';
 import { 
   Activity, Database, Search, RefreshCw, 
@@ -148,7 +148,6 @@ export default function NexoraProfessionalPanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'performance' | 'users'>('dashboard');
   
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string>('-');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle');
   const [isAutoRefresh, setIsAutoRefresh] = useState(false);
@@ -234,7 +233,6 @@ export default function NexoraProfessionalPanel() {
       
       if (Array.isArray(data)) {
         setLogs(data);
-        setLastUpdated(new Date().toLocaleTimeString('fa-IR', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit' }));
         localStorage.setItem('nexora_webhook_url', targetUrl);
         setConnectionStatus('connected');
         setErrorMsg(null);
@@ -439,7 +437,7 @@ export default function NexoraProfessionalPanel() {
               title={isAutoRefresh ? "توقف بروزرسانی خودکار" : "شروع بروزرسانی خودکار (هر ۵ ثانیه)"}
             >
               {isAutoRefresh ? <PauseCircle className="w-4 h-4"/> : <Timer className="w-4 h-4"/>}
-              <span className="hidden sm:inline">{isAutoRefresh ? "خودکار: روشن" : "خودکار: خاموش"}</span>
+              <span className="hidden sm:inline">{isAutoRefresh ? "خودکار" : "خامو‌ش"}</span>
             </button>
 
             <div className={`h-6 w-px mx-1 ${isDarkMode ? 'bg-slate-700' : 'bg-gray-300'}`}></div>
