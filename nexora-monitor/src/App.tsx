@@ -333,7 +333,7 @@ export default function App() {
         : (Array.isArray(data.data) ? data.data : (Array.isArray(data.logs) ? data.logs : []));
 
       const formattedLogs = logsArray.map((log: any, index: number) => ({
-        id: log.id || `log-${index}-${Date.now()}`,
+        id: String(log.id) || `log-${index}-${Date.now()}`,
         workflowName: log.workflowName || 'Unknown Workflow',
         status: log.status || 'warning',
         message: log.message || '',
