@@ -201,21 +201,21 @@ useEffect(() => {
   setConfig(initialConfig);
 
   // 3.  ALWAYS attempt to fetch logs immediately using the initial config
-  console.log("Initializing Dashboard with:", initialConfig. readUrl);
+  console.log("Initializing Dashboard with:", initialConfig.readUrl);
   setTimeout(() => {
       fetch(initialConfig.readUrl, { 
         headers: { 'Content-Type': 'application/json' } 
       })
       .then(res => res.json())
       .then(data => {
-        const logsArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : (data. logs ?  data.logs : []));
+        const logsArray = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : (data.logs ?  data.logs : []));
         const formattedLogs = logsArray.map((log: any, index: number) => ({
           id: String(log.id) || `log-${index}-${Date.now()}`,
           workflowName: log.workflowName || 'Unknown Workflow',
           status: log.status || 'warning',
           message: log.message || '',
           details: log.details || {},
-          timestamp: log.timestamp || new Date(). toISOString(),
+          timestamp: log.timestamp || new Date().toISOString(),
           executionTime: log.metrics?.executionTime || log.executionTime || 0,
           user: log.user || { id: 'anon', role: 'Guest', platform: 'web' },
           metrics: {
@@ -356,7 +356,7 @@ useEffect(() => {
       const csvContent = "data:text/csv;charset=utf-8," 
           + headers.join(",") + "\n" 
           + logs.map(e => `${e.id},${e.workflowName},${e.status},"${e.message.replace(/"/g, '""')}",${e.timestamp},${e.user?.id},${e.user?.role},${e.metrics?.tokensUsed},${e.metrics?.toolCalled}`).join("\n");
-      const encodedUri =encodeURIComponent(csvContent); // Typo fixed in standard JS: encodeURI
+      const encodedUri = encodeURIComponent(csvContent); // Typo fixed in standard JS: encodeURI
       const link = document.createElement("a");
       link.setAttribute("href", encodeURI(csvContent));
       link.setAttribute("download", `nexora_logs_${new Date().toISOString()}.csv`);
