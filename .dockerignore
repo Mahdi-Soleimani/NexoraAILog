@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+README*.md
+docs
+*.log
+.DS_Store
